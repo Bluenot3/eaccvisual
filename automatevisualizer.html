@@ -1,0 +1,295 @@
+<html><head><base href="https://websim.ai/c/enhanced-paper-planes-automation-visualization" /><title>Enhanced Paper Planes: Automation vs Manual Task Completion</title><style>
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f0f0f0;
+  overflow: hidden;
+}
+.container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+canvas {
+  border: 2px solid #333;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+h1 {
+  text-align: center;
+  color: #333;
+  margin: 20px 0;
+  font-size: 28px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+.legend {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin: 0 15px;
+}
+.legend-color {
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+  border-radius: 50%;
+}
+.legend-text {
+  font-size: 14px;
+  color: #333;
+}
+</style></head><body>
+<div class="container">
+  <h1>Enhanced Paper Planes: Automation vs Manual Task Completion</h1>
+  <canvas id="animationCanvas" width="1000" height="600"></canvas>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-color" style="background-color: #4CAF50;"></div>
+      <span class="legend-text">Automated Tasks</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background-color: #F44336;"></div>
+      <span class="legend-text">Manual Tasks</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('animationCanvas');
+const ctx = canvas.getContext('2d');
+
+// Constants
+const ROOM_WIDTH = 1000;
+const ROOM_HEIGHT = 600;
+const PERSON_WIDTH = 60;
+const PERSON_HEIGHT = 120;
+const COMPUTER_WIDTH = 100;
+const COMPUTER_HEIGHT = 80;
+const PLANE_SIZE = 25;
+
+// Counters
+let automatedTasksCompleted = 0;
+let manualTasksCompleted = 0;
+
+// Classes
+class Person {
+  constructor(x, y, color, isAutomated) {
+    this.x = x;
+    this.y = y;
+    this.color = color;
+    this.isAutomated = isAutomated;
+    this.throwCooldown = 0;
+    this.armAngle = 0;
+    this.armSpeed = isAutomated ? 0.2 : 0.1;
+  }
+
+  draw() {
+    // Body
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.ellipse(this.x + PERSON_WIDTH / 2, this.y + PERSON_HEIGHT / 2, PERSON_WIDTH / 2, PERSON_HEIGHT / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Head
+    ctx.fillStyle = '#FFD700';
+    ctx.beginPath();
+    ctx.arc(this.x + PERSON_WIDTH / 2, this.y + PERSON_HEIGHT / 4, PERSON_WIDTH / 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Face
+    ctx.fillStyle = 'black';
+    ctx.beginPath();
+    ctx.arc(this.x + PERSON_WIDTH / 2 - 10, this.y + PERSON_HEIGHT / 4 - 5, 3, 0, Math.PI * 2);
+    ctx.arc(this.x + PERSON_WIDTH / 2 + 10, this.y + PERSON_HEIGHT / 4 - 5, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(this.x + PERSON_WIDTH / 2, this.y + PERSON_HEIGHT / 4 + 10, 10, 0, Math.PI);
+    ctx.stroke();
+    
+    // Arm
+    ctx.save();
+    ctx.translate(this.x + PERSON_WIDTH / 2, this.y + PERSON_HEIGHT / 2);
+    ctx.rotate(Math.sin(this.armAngle) * Math.PI / 6);
+    ctx.fillStyle = this.color;
+    ctx.fillRect(0, -5, PERSON_WIDTH / 2, 10);
+    ctx.restore();
+    
+    if (this.isAutomated) {
+      // Draw computer next to automated person
+      ctx.fillStyle = '#4CAF50';
+      ctx.fillRect(this.x + PERSON_WIDTH + 10, this.y, COMPUTER_WIDTH, COMPUTER_HEIGHT);
+      ctx.fillStyle = '#333';
+      ctx.fillRect(this.x + PERSON_WIDTH + 20, this.y + 10, COMPUTER_WIDTH - 20, COMPUTER_HEIGHT - 20);
+    }
+  }
+
+  throwPlane() {
+    if (this.throwCooldown <= 0) {
+      this.throwCooldown = this.isAutomated ? 5 : 50; // Automated person throws faster
+      this.armAngle = 0; // Reset arm angle for throwing animation
+      return new PaperPlane(this.x + PERSON_WIDTH, this.y + PERSON_HEIGHT / 2, this.isAutomated);
+    }
+    return null;
+  }
+
+  update() {
+    this.throwCooldown--;
+    this.armAngle += this.armSpeed;
+  }
+}
+
+class PaperPlane {
+  constructor(x, y, isAutomated) {
+    this.x = x;
+    this.y = y;
+    this.speed = isAutomated ? 10 : 6;
+    this.isAutomated = isAutomated;
+    this.angle = 0;
+    this.wobbleSpeed = Math.random() * 0.1 + 0.05;
+  }
+
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(Math.sin(this.angle) * 0.1);
+    ctx.fillStyle = this.isAutomated ? '#4CAF50' : '#F44336';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(PLANE_SIZE, PLANE_SIZE / 2);
+    ctx.lineTo(0, PLANE_SIZE);
+    ctx.lineTo(PLANE_SIZE / 4, PLANE_SIZE / 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  update() {
+    this.x += this.speed;
+    this.angle += this.wobbleSpeed;
+  }
+}
+
+class Computer {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+
+  draw() {
+    // Monitor
+    ctx.fillStyle = '#333';
+    ctx.fillRect(this.x, this.y, COMPUTER_WIDTH, COMPUTER_HEIGHT);
+    ctx.fillStyle = '#4CAF50';
+    ctx.fillRect(this.x + 5, this.y + 5, COMPUTER_WIDTH - 10, COMPUTER_HEIGHT - 25);
+    
+    // Stand
+    ctx.fillStyle = '#666';
+    ctx.beginPath();
+    ctx.moveTo(this.x + COMPUTER_WIDTH / 2 - 15, this.y + COMPUTER_HEIGHT);
+    ctx.lineTo(this.x + COMPUTER_WIDTH / 2 + 15, this.y + COMPUTER_HEIGHT);
+    ctx.lineTo(this.x + COMPUTER_WIDTH / 2 + 25, this.y + COMPUTER_HEIGHT + 20);
+    ctx.lineTo(this.x + COMPUTER_WIDTH / 2 - 25, this.y + COMPUTER_HEIGHT + 20);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+// Initialize objects
+const automatedPerson = new Person(50, ROOM_HEIGHT / 2 - PERSON_HEIGHT / 2 - 50, '#4CAF50', true);
+const manualPerson = new Person(50, ROOM_HEIGHT - PERSON_HEIGHT - 50, '#F44336', false);
+const computer = new Computer(ROOM_WIDTH - COMPUTER_WIDTH - 50, ROOM_HEIGHT / 2 - COMPUTER_HEIGHT / 2);
+let paperPlanes = [];
+
+// Animation loop
+function animate() {
+  ctx.clearRect(0, 0, ROOM_WIDTH, ROOM_HEIGHT);
+
+  // Draw room
+  const gradient = ctx.createLinearGradient(0, 0, ROOM_WIDTH, ROOM_HEIGHT);
+  gradient.addColorStop(0, '#e0e0e0');
+  gradient.addColorStop(1, '#f5f5f5');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, ROOM_WIDTH, ROOM_HEIGHT);
+
+  // Update and draw people
+  automatedPerson.update();
+  manualPerson.update();
+  automatedPerson.draw();
+  manualPerson.draw();
+
+  // Draw computer
+  computer.draw();
+
+  // Throw new planes
+  const automatedPlane = automatedPerson.throwPlane();
+  if (automatedPlane) paperPlanes.push(automatedPlane);
+
+  const manualPlane = manualPerson.throwPlane();
+  if (manualPlane) paperPlanes.push(manualPlane);
+
+  // Update and draw paper planes
+  paperPlanes = paperPlanes.filter(plane => {
+    plane.update();
+    plane.draw();
+    
+    // Remove planes that reach the computer
+    if (plane.x + PLANE_SIZE > computer.x) {
+      // Add absorption effect
+      ctx.fillStyle = plane.isAutomated ? 'rgba(76, 175, 80, 0.5)' : 'rgba(244, 67, 54, 0.5)';
+      ctx.beginPath();
+      ctx.arc(computer.x + COMPUTER_WIDTH / 2, computer.y + COMPUTER_HEIGHT / 2, 30, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Increment counters
+      if (plane.isAutomated) {
+        automatedTasksCompleted++;
+      } else {
+        manualTasksCompleted++;
+      }
+      
+      return false;
+    }
+    return plane.x < ROOM_WIDTH;
+  });
+
+  // Display task counts
+  ctx.fillStyle = '#333';
+  ctx.font = 'bold 24px Arial';
+  ctx.fillText('Tasks Completed:', 20, 40);
+  ctx.font = '20px Arial';
+  ctx.fillStyle = '#4CAF50';
+  ctx.fillText(`Automated: ${automatedTasksCompleted}`, 20, 70);
+  ctx.fillStyle = '#F44336';
+  ctx.fillText(`Manual: ${manualTasksCompleted}`, 20, 100);
+
+  // Display efficiency comparison
+  const totalTasks = automatedTasksCompleted + manualTasksCompleted;
+  if (totalTasks > 0) {
+    const automatedPercentage = (automatedTasksCompleted / totalTasks * 100).toFixed(1);
+    const manualPercentage = (manualTasksCompleted / totalTasks * 100).toFixed(1);
+    ctx.fillStyle = '#333';
+    ctx.font = 'bold 20px Arial';
+    ctx.fillText('Efficiency:', 20, 140);
+    ctx.font = '18px Arial';
+    ctx.fillText(`Automated: ${automatedPercentage}%`, 20, 170);
+    ctx.fillText(`Manual: ${manualPercentage}%`, 20, 200);
+  }
+
+  requestAnimationFrame(animate);
+}
+
+animate();
+</script></body></html>
